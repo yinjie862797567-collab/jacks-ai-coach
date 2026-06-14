@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>杰克船长AI智能体</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ══════════════════════════════════════
+   主题配色系统
+   ══════════════════════════════════════ */
+:root {
+  /* 默认：简约白 */
+  --primary: #2563eb;
+  --bg: #f2f3f5;
+  --card: #ffffff;
+  --text: #1a1a2e;
+  --text-light: #6b7280;
+  --border: #e5e7eb;
+  --radius: 12px;
+}
+
+[data-theme="warm"] {
+  --primary: #b45309;
+  --bg: #f5f0eb;
+  --card: #fffcf8;
+  --text: #292524;
+  --text-light: #78716c;
+  --border: #e7e2dc;
+}
+
+[data-theme="dark"] {
+  --primary: #6366f1;
+  --bg: #111118;
+  --card: #1c1c26;
+  --text: #e8e8ed;
+  --text-light: #78788a;
+  --border: #2c2c3a;
+}
+
+[data-theme="green"] {
+  --primary: #15803d;
+  --bg: #ecf3ed;
+  --card: #fafdfa;
+  --text: #1a2e1a;
+  --text-light: #6b8a70;
+  --border: #dce8de;
+}
+
+[data-theme="gray"] {
+  --primary: #52525b;
+  --bg: #e8e8ea;
+  --card: #fafafa;
+  --text: #18181b;
+  --text-light: #71717a;
+  --border: #d4d4d8;
+}
+
+/* ══════════════════════════════════════
+   全局样式
+   ══════════════════════════════════════ */
+body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC","HarmonyOS Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);height:100dvh;display:flex;flex-direction:column;overflow:hidden;color:var(--text);touch-action:manipulation;transition:background .35s ease,color .35s ease;font-size:16px;letter-spacing:.01em}
+
+.header{background:var(--primary);color:#fff;padding:12px 16px;flex-shrink:0;transition:background .35s ease;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.header-top h1{font-size:18px;font-weight:600;letter-spacing:.5px}
+.theme-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;touch-action:manipulation}
+.theme-btn:active{background:rgba(255,255,255,.35)}
+.picker-row{display:flex;gap:8px}
+.picker-row select{flex:1;padding:10px 12px;border:none;border-radius:10px;font-size:14px;outline:none;background:rgba(255,255,255,.92);color:var(--text);-webkit-appearance:none;appearance:none;font-family:inherit}
+
+#chatbox{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.msg{max-width:88%;padding:12px 16px;border-radius:14px;font-size:15px;line-height:1.65;word-break:break-word;animation:fadeIn .25s ease;position:relative}
+.msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px;margin-left:52px}
+.msg.bot{align-self:flex-start;background:var(--card);color:var(--text);border-bottom-left-radius:4px;margin-right:52px}
+.msg.system{align-self:center;background:var(--border);color:var(--text-light);font-size:12px;padding:4px 14px;border-radius:20px;max-width:92%}
+
+/* dark mode 对话气泡微调 */
+[data-theme="dark"] .msg.bot{border:1px solid var(--border)}
+
+.typing{display:flex;gap:5px;padding:4px 0}
+.typing span{width:8px;height:8px;background:var(--primary);border-radius:50%;animation:typing 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3}30%{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+#inputbar{display:flex;gap:8px;padding:10px 14px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;align-items:flex-end;transition:background .3s,border-color .3s}
+#inputbar textarea{flex:1;border:1px solid var(--border);border-radius:24px;padding:12px 18px;font-size:15px;resize:none;outline:none;max-height:100px;line-height:1.5;font-family:inherit;background:var(--bg);color:var(--text);touch-action:manipulation;transition:background .3s,border-color .3s,color .3s}
+#inputbar textarea:focus{border-color:var(--primary);background:var(--card)}
+#inputbar textarea::placeholder{color:var(--text-light)}
+#sendBtn{background:var(--primary);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+#sendBtn:active{transform:scale(.92)}
+#sendBtn:disabled{background:var(--text-light);cursor:not-allowed;box-shadow:none}
+
+.welcome{text-align:center;padding:48px 20px 36px;color:var(--text-light)}
+.welcome .icon{font-size:56px;margin-bottom:12px}
+.welcome h2{font-size:20px;color:var(--text);margin-bottom:8px;font-weight:600}
+.welcome p{font-size:14px;line-height:1.6;color:var(--text-light)}
+.examples{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.examples button{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:8px 16px;font-size:13px;color:var(--primary);cursor:pointer;touch-action:manipulation;transition:all .2s;font-family:inherit}
+.examples button:active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.status-bar{font-size:12px;color:var(--text-light);padding:4px 14px 8px;text-align:center;flex-shrink:0;letter-spacing:.3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>🤖 杰克船长</h1>
+    <button class="theme-btn" id="themeToggle">🎨 换肤</button>
+  </div>
+  <div class="picker-row">
+    <select id="industrySelect" onchange="onIndustryChange()">
+      <option value="">— 选择细分行业 —</option>
+    </select>
+    <select id="scenarioSelect" onchange="onScenarioChange()" disabled>
+      <option value="">— 选择工具 —</option>
+    </select>
+  </div>
+</div>
+
+<div id="chatbox">
+  <div class="welcome" id="welcome">
+    <div class="icon">🤖</div>
+    <h2>杰克船长AI智能体</h2>
+    <p>选择上方的细分行业和工具<br>或直接输入问题开始对话</p>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">连接中...</div>
+
+<div id="inputbar">
+  <textarea id="input" rows="1" placeholder="向杰克船长提问..."></textarea>
+  <button id="sendBtn">➤</button>
+</div>
+
+<script>
+const API = window.location.origin;
+
+/* ══════════════════════════════════════
+   主题系统
+   ══════════════════════════════════════ */
+const THEMES = [
+  { id: 'light', name: '简约白', emoji: '☀️' },
+  { id: 'warm',  name: '温暖米', emoji: '🌾' },
+  { id: 'dark',  name: '暗夜灰', emoji: '🌙' },
+  { id: 'green', name: '清新绿', emoji: '🍃' },
+  { id: 'gray',  name: '极简灰', emoji: '🪨' },
+];
+let themeIndex = 0;
+
+function applyTheme(index) {
+  const t = THEMES[index];
+  document.documentElement.setAttribute('data-theme', t.id === 'light' ? '' : t.id);
+  document.getElementById('themeToggle').innerHTML = `${t.emoji} ${t.name}`;
+  localStorage.setItem('jacks_theme', t.id);
+}
+
+function cycleTheme() {
+  themeIndex = (themeIndex + 1) % THEMES.length;
+  applyTheme(themeIndex);
+}
+
+// Restore saved theme
+const savedTheme = localStorage.getItem('jacks_theme');
+if (savedTheme) {
+  const idx = THEMES.findIndex(t => t.id === savedTheme);
+  if (idx >= 0) themeIndex = idx;
+}
+applyTheme(themeIndex);
+
+/* ══════════════════════════════════════
+   应用逻辑
+   ══════════════════════════════════════ */
+let state = { industries: {}, scenarios: {}, currentIndustry: '', currentScenario: '', sessionId: null, loading: false };
+
+async function init() {
+  try {
+    const industries = await fetchJSON('/industries');
+    const sel = document.getElementById('industrySelect');
+    industries.sort((a,b) => (a.name||a.key).localeCompare(b.name||b.key));
+    for (const ind of industries) {
+      const opt = document.createElement('option');
+      opt.value = ind.key;
+      opt.textContent = `${ind.icon || ''} ${ind.name} (${ind.scenario_count}工具)`;
+      sel.appendChild(opt);
+      const detail = await fetchJSON(`/industries/${encodeURIComponent(ind.key)}`);
+      state.industries[ind.key] = detail;
+    }
+    document.getElementById('statusBar').textContent = `${industries.length}个细分行业 · 请选择`;
+  } catch(e) {
+    document.getElementById('statusBar').textContent = '⚠️ 连接失败，刷新重试';
+  }
+}
+
+function onIndustryChange() {
+  const key = document.getElementById('industrySelect').value;
+  state.currentIndustry = key;
+  state.currentScenario = '';
+  const scSel = document.getElementById('scenarioSelect');
+  scSel.innerHTML = '<option value="">— 选择工具 —</option>';
+  scSel.disabled = !key;
+  if (!key || !state.industries[key]) return;
+  const scenarios = state.industries[key].scenarios;
+  state.scenarios = scenarios;
+  for (const [sk, sv] of Object.entries(scenarios)) {
+    const opt = document.createElement('option');
+    opt.value = sk;
+    opt.textContent = sk;
+    scSel.appendChild(opt);
+  }
+  const ind = state.industries[key];
+  addSystemMsg(`已选择 ${ind.icon || ''} ${ind.name}，请选一个具体工具`);
+}
+
+function onScenarioChange() {
+  const key = document.getElementById('scenarioSelect').value;
+  state.currentScenario = key;
+  if (!key) return;
+  const sc = state.scenarios[key];
+  const ind = state.industries[state.currentIndustry];
+  clearChat();
+  addBotMsg(`🤖 你好！${ind.name}场景「${key}」已就绪，有什么可以帮你的？`);
+  if (sc.examples && sc.examples.length > 0) {
+    const container = document.getElementById('chatbox');
+    const div = document.createElement('div');
+    div.className = 'examples';
+    for (const ex of sc.examples) {
+      const btn = document.createElement('button');
+      btn.textContent = ex.length > 18 ? ex.slice(0, 16) + '..' : ex;
+      btn.title = ex;
+      btn.addEventListener('click', function() {
+        document.getElementById('input').value = ex;
+        sendMessage();
+      });
+      div.appendChild(btn);
+    }
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function clearChat() { document.getElementById('chatbox').innerHTML = ''; }
+
+function addUserMsg(text) {
+  const box = document.getElementById('chatbox');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addBotMsg(text) {
+  const box = document.getElementById('chatbox');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addSystemMsg(text) {
+  const box = document.getElementById('chatbox');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showTyping() {
+  const box = document.getElementById('chatbox');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function removeTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+function updateBotMsg(text) {
+  const box = document.getElementById('chatbox');
+  const msgs = box.querySelectorAll('.msg.bot');
+  if (msgs.length > 0) {
+    msgs[msgs.length - 1].textContent = text;
+  } else {
+    addBotMsg(text);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text || state.loading) return;
+  input.value = ''; input.style.height = 'auto';
+  state.loading = true; document.getElementById('sendBtn').disabled = true;
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  addUserMsg(text);
+  showTyping();
+  try {
+    if (!state.currentIndustry || !state.currentScenario) {
+      removeTyping();
+      addBotMsg('请先选择上方的细分行业和工具');
+      state.loading = false; document.getElementById('sendBtn').disabled = false;
+      return;
+    }
+    const prov = state.availableProvider || 'mimo';
+    const resp = await fetch(API + '/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        industry_key: state.currentIndustry,
+        scenario_key: state.currentScenario,
+        message: text,
+        session_id: state.sessionId,
+        provider: prov,
+        stream: true
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      removeTyping();
+      addBotMsg(`❌ ${err.detail || '请求失败'}`);
+      state.loading = false; document.getElementById('sendBtn').disabled = false;
+      return;
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', fullText = '', metaReceived = false;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) continue;
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.session_id && !metaReceived) { state.sessionId = data.session_id; metaReceived = true; }
+            if (data.content) { fullText += data.content; removeTyping(); updateBotMsg(fullText); }
+          } catch(e) {}
+        }
+      }
+    }
+    if (!fullText) { removeTyping(); addBotMsg('❌ AI 返回为空'); }
+  } catch(e) { removeTyping(); addBotMsg(`❌ 网络错误`); }
+  state.loading = false; document.getElementById('sendBtn').disabled = false;
+}
+
+function esc(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+async function fetchJSON(url) {
+  const r = await fetch(API + url);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Events ──
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+document.getElementById('themeToggle').addEventListener('click', cycleTheme);
+document.getElementById('input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+init();
+</script>
+</body>
+</html>
