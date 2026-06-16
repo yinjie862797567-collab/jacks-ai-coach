@@ -7,7 +7,7 @@ class ChatRequest(BaseModel):
     scenario_key: str
     message: str
     session_id: Optional[str] = None
-    provider: Optional[str] = "mimo"
+    provider: Optional[str] = "deepseek"
     model: Optional[str] = None
     stream: Optional[bool] = True
 

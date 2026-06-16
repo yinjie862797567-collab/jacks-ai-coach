@@ -312,7 +312,7 @@ async function sendMessage() {
       state.loading = false; document.getElementById('sendBtn').disabled = false;
       return;
     }
-    const prov = state.availableProvider || 'mimo';
+    const prov = state.availableProvider || 'deepseek';
     const resp = await fetch(API + '/chat', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
